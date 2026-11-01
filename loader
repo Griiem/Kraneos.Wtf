@@ -1,1 +1,61 @@
+local _version = "1.6.66"
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))() 
 
+local Window = WindUI:CreateWindow({
+    Title = "",
+    Icon = "stone",
+    Author = nil,
+    Folder = "Kraneos",
+    ToggleKey = Enum.KeyCode.L,
+    Size = UDim2.fromScale(.38, .25),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(900, 900),
+    Transparent = true,
+    Theme = "Amber",
+    Resizable = true,
+    SideBarWidth = 200,
+    HideSearchBar = true,
+    ScrollBarEnabled = false,
+    BackgroundImageTransparency = 1,
+    Background = "8508980536",
+    User = {
+        Enabled = true,
+        Anonymous = false,
+        Callback = function()
+            WindUI:Notify({
+                Title = "User Button",
+                Content = "No function yet",
+                Icon = "user",
+                Duration = 3,
+            })
+        end,
+    },
+})
+
+Window:Tag({
+    Title = "v0.0.1",
+    Icon = "rocket",
+    Color = Color3.fromHex("#89fa98"),
+    Radius = 6.333,
+})
+
+Window:Tag({
+    Title = "夢",
+    Color = Color3.fromHex("#b5c242"),
+    Radius = 13,
+})
+
+local BASE_URL = "https://github.com/Griiem/Kraneos.Wtf"
+
+local function loadTab(name)
+    local url = BASE_URL .. name .. ".luau" .. "?t=" .. tostring(os.time())
+    local ok, err = pcall(function()
+        local src = game:HttpGet(url)
+        local chunk = loadstring(src)
+        if not chunk then
+            warn("[Kraneos] Compilation failed: " .. name); return 
+        end
+        chunk()(Window, WindUI)
+    end)
+    if not ok then warn("[Kraneos] Error loading tab '" .. name .. "': " .. tostring(err)) end
+end
