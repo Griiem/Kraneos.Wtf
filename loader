@@ -59,3 +59,6 @@ local function loadTab(name)
     end)
     if not ok then warn("[Kraneos] Error loading tab '" .. name .. "': " .. tostring(err)) end
 end
+
+loadTab(esp)
+print("[Wtf.Warning] Loaded...")
