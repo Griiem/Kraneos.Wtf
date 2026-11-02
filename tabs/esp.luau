@@ -18,6 +18,7 @@ Esp.Folder.Name = "Esp"
 
 Esp.Enabled = false
 Esp.OtherPlrs = {}
+Esp.Highlights = {}
 
 function Esp:AddPlayer(player)
     if player == plr then return end
@@ -27,29 +28,66 @@ function Esp:AddPlayer(player)
     player.CharacterAdded:Connect(function()
         if Esp.Enabled then Esp:Active() end
     end)
+
+    player:GetPropertyChangedSignal("Team"):Connect(function()
+        if Esp.Enabled then Esp:Active() end
+    end)
+
+    Esp.Highlights[player] = highlight
 end
 
+
 function Esp:Active ()
-    for _, v in Esp.Folder:GetDescendants() do
-        if v:IsA("Highlight") then v:Destroy() end
+
+    if not Esp.Enabled or plr.Team == Spectator then
+        for player, highlight in Esp.Highlights do
+            highlight:Destroy()
+            Esp.Highlights[player] = nil
+        end
+        return
     end
-    if not Esp.Enabled then return end
-    for _, player in Esp.OtherPlrs do
-        if player.Team == plr.Team or player.Team == Spectator or plr.Team == Spectator or not player.Character then continue end
-        local h = Instance.new("Highlight", Esp.Folder)
-        h.Name = `{player.Name}'s Highlight`
-        h.Enabled = true
-        h.Adornee = player.Character
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        h.FillColor = Color3.fromRGB(255, 255, 125)
-        h.OutlineColor = Color3.fromRGB(255, 255, 255)
-        h.FillTransparency = 0
-        h.OutlineTransparency = 0
+
+    for player, _ in Esp.OtherPlrs do
+
+        if player.Team == plr.Team or player.Team == Spectator or not player.Character then
+            if Esp.Highlights[player] then
+                Esp.Highlights[player]:Destroy()
+                Esp.Highlights[player] = nil
+            end
+            continue
+        end
+
+        local h = Esp.Highlights[player]
+
+        if h and h.Adornee ~= player.Character then
+            h:Destroy()
+            Esp.Highlights[player] = nil
+            h = nil
+        end
+
+        if not h then
+            h = Instance.new("Highlight")
+            h.Name = `{player.Name}'s Highlight`
+            h.Enabled = true
+            h.Adornee = player.Character
+            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            h.FillColor = Color3.fromRGB(255, 255, 125)
+            h.OutlineColor = Color3.fromRGB(255, 255, 255)
+            h.FillTransparency = 0
+            h.OutlineTransparency = 0
+            h.Parent = Esp.Folder
+
+            Esp.Highlights[player] = h
+        end
     end
 end
 
 for _, player in Layers:GetPlayers() do
     Esp:AddPlayer(player)
+
+    player:GetPropertyChangedSignal("Team"):Connect(function()
+        if Esp.Enabled then Esp:Active() end
+    end)
 end
 
 Layers.PlayerAdded:Connect(function(player)
