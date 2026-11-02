@@ -7,7 +7,7 @@ local Tab = Window:Tab({
     Icon = "bird",
 })
 
-local YourHStack = Tab:HStack()
+local YourHStack = Tab:HStack({AutoSpace = true})
  
 local LeftVStack = YourHStack:VStack()
 local RightVStack = YourHStack:VStack()
