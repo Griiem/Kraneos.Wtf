@@ -45,20 +45,38 @@ Window:Tag({
     Radius = 13,
 })
 
-local BASE_URL = "https://github.com/Griiem/Kraneos.Wtf"
+
+local BASE_URL = "https://raw.githubusercontent.com/Griiem/Kraneos.Wtf/main/tabs/"
 
 local function loadTab(name)
-    local url = BASE_URL .. name .. ".luau" .. "?t=" .. tostring(os.time())
-    local ok, err = pcall(function()
-        local src = game:HttpGet(url)
-        local chunk = loadstring(src)
-        if not chunk then
-            warn("[Kraneos] Compilation failed: " .. name); return 
-        end
-        chunk()(Window, WindUI)
+    local url = BASE_URL .. name .. ".luau"
+
+    local success, err = pcall(function()
+        local source = game:HttpGet(url)
+        assert(source and #source > 0, "Empty source")
+
+        local chunk, compileError = loadstring(source)
+        assert(chunk, compileError or "Compilation failed")
+
+        local setup = chunk()
+
+        assert(
+            type(setup) == "function",
+            "Tab must return a function"
+        )
+
+        setup(Window, WindUI)
     end)
-    if not ok then warn("[Kraneos] Error loading tab '" .. name .. "': " .. tostring(err)) end
+
+    if not success then
+        warn("[Kraneos] Failed to load tab '" .. name .. "': " .. tostring(err))
+        return false
+    end
+
+    print("[Kraneos] Loaded tab: " .. name)
+    return true
 end
 
 loadTab("esp")
+
 print("[Wtf.Warning] Loaded...")
