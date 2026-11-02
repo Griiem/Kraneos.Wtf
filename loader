@@ -73,7 +73,6 @@ local function loadTab(name)
         return false
     end
 
-    print("[Kraneos] Loaded tab: " .. name)
     return true
 end
 
