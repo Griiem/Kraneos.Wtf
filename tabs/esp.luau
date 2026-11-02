@@ -18,39 +18,42 @@ Esp.Folder.Name = "Esp"
 
 Esp.Enabled = false
 Esp.OtherPlrs = {}
-for _, player in Layers:GetPlayers() do
-    if player == plr then continue end
+
+function Esp:AddPlayer(player)
+    if player == plr then return end
+
     Esp.OtherPlrs[player] = player
+
+    player.CharacterAdded:Connect(function()
+        if Esp.Enabled then Esp:Active() end
+    end)
 end
 
 function Esp:Active ()
-    if not Esp.Enabled then
-        for _, v in Esp.Folder:GetDescendants() do
-            if v:IsA("Highlight") then
-                v:Destroy()
-            end
-        end
-    else
-        for _, player in Esp.OtherPlrs do
-            if player.Team == plr.Team or player.Team == Spectator or plr.Team == Spectator or not player.Character then continue end
-            local h = Instance.new("Highlight", Esp.Folder)
-            h.Name = `{player.Name}'s Highlight`
-            h.Enabled = true
-            h.Adornee = player.Character
-            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            h.FillColor = Color3.fromRGB(255, 255, 125)
-            h.OutlineColor = Color3.fromRGB(255, 255, 255)
-            h.FillTransparency = 0
-            h.OutlineTransparency = 0
-        end
+    for _, v in Esp.Folder:GetDescendants() do
+        if v:IsA("Highlight") then v:Destroy() end
+    end
+    if not Esp.Enabled then return end
+    for _, player in Esp.OtherPlrs do
+        if player.Team == plr.Team or player.Team == Spectator or plr.Team == Spectator or not player.Character then continue end
+        local h = Instance.new("Highlight", Esp.Folder)
+        h.Name = `{player.Name}'s Highlight`
+        h.Enabled = true
+        h.Adornee = player.Character
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        h.FillColor = Color3.fromRGB(255, 255, 125)
+        h.OutlineColor = Color3.fromRGB(255, 255, 255)
+        h.FillTransparency = 0
+        h.OutlineTransparency = 0
     end
 end
 
-Layers.PlayerAdded:Connect(function (player : Player)
-    Esp.OtherPlrs[player] = player
-    player.CharacterAdded:Connect(function (char)
-        Esp:Active()
-    end)
+for _, player in Layers:GetPlayers() do
+    Esp:AddPlayer(player)
+end
+
+Layers.PlayerAdded:Connect(function(player)
+    Esp:AddPlayer(player)
 end)
 
 Layers.PlayerRemoving:Connect(function (player : Player)
