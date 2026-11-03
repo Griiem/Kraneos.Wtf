@@ -40,11 +40,10 @@ end
 function Esp:Active ()
 
     if not Esp.Enabled or plr.Team == Spectator then
-        for player, highlight in Esp.Highlights do
-            highlight:Destroy()
+        for player, high in Esp.Highlights do
+            high:Destroy()
             Esp.Highlights[player] = nil
-        end
-        return
+        end; return
     end
 
     for player, _ in Esp.OtherPlrs do
