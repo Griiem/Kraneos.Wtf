@@ -43,6 +43,15 @@ function Esp:AddPlayer(player)
     Esp.Highlights[player] = highlight
 end
 
+function Esp:UpdateSettings()
+    for _, highlight in Esp.Highlights do
+        highlight.FillColor = Esp.Settings.FillColor
+        highlight.OutlineColor = Esp.Settings.OutlineColor
+        highlight.FillTransparency = Esp.Settings.FillTransparecny
+        highlight.OutlineTransparency = Esp.Settings.OutlineTransparency
+    end
+end
+
 
 function Esp:Active ()
 
@@ -135,6 +144,7 @@ local FillPicker = RightVStack:Colorpicker({
     Default = Esp.Settings.FillColor,
     Callback = function(color)
         Esp.Settings.FillColor = color
+        Esp:UpdateSettings()
     end
 })
 
@@ -148,6 +158,7 @@ local FillTransparencySlider = RightVStack:Slider({
     Step = .1,
     Callback = function(value)
         Esp.Settings.FillTransparecny = value
+        Esp:UpdateSettings()
     end
 })
 
@@ -156,6 +167,7 @@ local OutlinePicker = RightVStack:Colorpicker({
     Default = Esp.Settings.OutlineColor,
     Callback = function(color)
         Esp.Settings.OutlineColor = color
+        Esp:UpdateSettings()
     end
 })
 
@@ -169,6 +181,7 @@ local OutlineTransparencySlider = RightVStack:Slider({
     Step = .1,
     Callback = function(value)
         Esp.Settings.OutlineTransparency = value
+        Esp:UpdateSettings()
     end
 })
 
