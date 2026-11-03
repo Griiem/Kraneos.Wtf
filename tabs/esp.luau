@@ -44,14 +44,34 @@ function Esp:AddPlayer(player)
 end
 
 function Esp:UpdateSettings()
-    for _, highlight in Esp.Highlights do
-        highlight.FillColor = Esp.Settings.FillColor
-        highlight.OutlineColor = Esp.Settings.OutlineColor
-        highlight.FillTransparency = Esp.Settings.FillTransparecny
-        highlight.OutlineTransparency = Esp.Settings.OutlineTransparency
+    for _, h in Esp.Highlights do
+        h.FillColor = Esp.Settings.FillColor
+        h.OutlineColor = Esp.Settings.OutlineColor
+        h.FillTransparency = Esp.Settings.FillTransparecny
+        h.OutlineTransparency = Esp.Settings.OutlineTransparency
     end
 end
 
+function Esp:Cleanup()
+    if self.Connections then
+        for _, connection in pairs(self.Connections) do
+            if connection.Connected then
+                connection:Disconnect()
+            end
+        end
+
+        table.clear(self.Connections)
+    end
+
+    if self.Folder then
+        self.Folder:Destroy()
+        self.Folder = nil
+    end
+
+    if self.OtherPlrs then
+        table.clear(self.OtherPlrs)
+    end
+end
 
 function Esp:Active ()
 
@@ -113,7 +133,6 @@ Layers.PlayerRemoving:Connect(function (player : Player)
     Esp.OtherPlrs[player] = nil
 end)
 
-
 local Tab = Window:Tab({
     Title = "ESP",
     Icon = "eye",
@@ -132,9 +151,6 @@ local ActiveEsp = LeftVStack:Toggle({
     Callback = function(state)
         Esp.Enabled = state
         Esp:Active()
-        
-        
-        
     end
 })
 
@@ -184,5 +200,9 @@ local OutlineTransparencySlider = RightVStack:Slider({
         Esp:UpdateSettings()
     end
 })
+
+Window:OnDestroy(function()
+    Esp:Cleanup()
+end)
 
 end
