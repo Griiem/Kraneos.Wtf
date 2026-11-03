@@ -13,12 +13,19 @@ return function (Window, WindUI)
 
 local Esp = {}
 
-Esp.Folder = Instance.new("Folder", Ws)
+Esp.Folder = Instance.new("Folder")
 Esp.Folder.Name = "Esp"
+Esp.Folder.Parent = Ws
 
 Esp.Enabled = false
 Esp.OtherPlrs = {}
 Esp.Highlights = {}
+Esp.Settings = {}
+
+Esp.Settings.FillColor = Color3.fromRGB(255, 120, 120)
+Esp.Settings.OutlineColor = Color3.fromRGB(0, 0, 0)
+Esp.Settings.FillTransparecny = .5
+Esp.Settings.OutlineTransparency = .8
 
 function Esp:AddPlayer(player)
     if player == plr then return end
@@ -70,10 +77,10 @@ function Esp:Active ()
             h.Enabled = true
             h.Adornee = player.Character
             h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            h.FillColor = Color3.fromRGB(255, 255, 125)
-            h.OutlineColor = Color3.fromRGB(255, 255, 255)
-            h.FillTransparency = 0
-            h.OutlineTransparency = 0
+            h.FillColor = Esp.Settings.FillColor
+            h.OutlineColor = Esp.Settings.OutlineColor
+            h.FillTransparency = Esp.Settings.FillTransparecny
+            h.OutlineTransparency = Esp.Settings.OutlineTransparency
             h.Parent = Esp.Folder
 
             Esp.Highlights[player] = h
@@ -107,7 +114,8 @@ local HStack = Tab:HStack({AutoSpace = true})
  
 local LeftVStack = HStack:VStack()
 local RightVStack = HStack:VStack()
- 
+
+--< Left Stack
 local ActiveEsp = LeftVStack:Toggle({
     Title = "Enable Esp",
     Type = "Checkbox",
@@ -121,5 +129,47 @@ local ActiveEsp = LeftVStack:Toggle({
     end
 })
 
+--< Right Stack
+local FillPicker = RightVStack:Colorpicker({
+    Title = "Esp Fill Color",
+    Default = Esp.Settings.FillColor,
+    Callback = function(color)
+        Esp.Settings.FillColor = color
+    end
+})
+
+local FillTransparencySlider = RightVStack:Slider({
+    Title = "Fill Transparecny",
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = .5
+    },
+    Step = .1,
+    Callback = function(value)
+        Esp.Settings.FillTransparecny = value
+    end
+})
+
+local OutlinePicker = RightVStack:Colorpicker({
+    Title = "Esp Outline Color",
+    Default = Esp.Settings.OutlineColor,
+    Callback = function(color)
+        Esp.Settings.OutlineColor = color
+    end
+})
+
+local OutlineTransparencySlider = RightVStack:Slider({
+    Title = "Outline Transparecny",
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = .5
+    },
+    Step = .1,
+    Callback = function(value)
+        Esp.Settings.OutlineTransparency = value
+    end
+})
 
 end
