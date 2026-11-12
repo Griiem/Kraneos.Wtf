@@ -1,0 +1,124 @@
+return function (WindUI)
+    WindUI:AddTheme({
+    Name = "Kraneos",
+
+    Primary = Color3.fromRGB(77, 208, 225),
+
+    White = Color3.fromRGB(255, 255, 255),
+    Black = Color3.fromRGB(0, 0, 0),
+
+    Dialog = Color3.fromRGB(8, 45, 58),
+
+    Background = Color3.fromRGB(3, 21, 26),
+    BackgroundTransparency = 0,
+    Hover = Color3.fromRGB(0, 212, 255),
+
+    PanelBackground = Color3.fromRGB(13, 57, 71),
+    PanelBackgroundTransparency = 0.94,
+
+    WindowBackground = Color3.fromRGB(5, 26, 38),
+
+    WindowShadow = Color3.fromRGB(0, 0, 0),
+    WindowShadowTransparency = 0.65,
+
+    WindowTopbarTitle = Color3.fromRGB(236, 239, 241),
+    WindowTopbarAuthor = Color3.fromRGB(128, 222, 234),
+    WindowTopbarIcon = Color3.fromRGB(77, 208, 225),
+    WindowTopbarButtonIcon = Color3.fromRGB(128, 190, 202),
+
+    WindowSearchBarBackground = Color3.fromRGB(3, 21, 26),
+
+    TabBackground = Color3.fromRGB(0, 212, 255),
+    TabBackgroundHover = Color3.fromRGB(0, 212, 255),
+    TabBackgroundHoverTransparency = 0.94,
+    TabBackgroundActive = Color3.fromRGB(0, 212, 255),
+    TabBackgroundActiveTransparency = 0.89,
+
+    TabText = Color3.fromRGB(236, 239, 241),
+    TabTextTransparency = 0.35,
+    TabTextTransparencyActive = 0,
+
+    TabTitle = Color3.fromRGB(128, 222, 234),
+    TabIcon = Color3.fromRGB(77, 208, 225),
+    TabIconTransparency = 0.4,
+    TabIconTransparencyActive = 0,
+
+    TabBorderTransparency = 1,
+    TabBorderTransparencyActive = 0.8,
+    TabBorder = Color3.fromRGB(0, 212, 255),
+
+    ElementBackground = Color3.fromRGB(255, 255, 255),
+    ElementBackgroundTransparency = 0.94,
+    ElementBackgroundHover = WindUI.Creator:AddColor(
+        "ElementBackground",
+        Color3.fromRGB(0, 212, 255),
+        0.90
+    ),
+
+    ElementTitle = Color3.fromRGB(236, 239, 241),
+    ElementDesc = Color3.fromRGB(160, 190, 200),
+    ElementIcon = Color3.fromRGB(77, 208, 225),
+
+    PopupBackground = Color3.fromRGB(5, 26, 38),
+    PopupBackgroundTransparency = 0.02,
+    PopupTitle = Color3.fromRGB(236, 239, 241),
+    PopupContent = Color3.fromRGB(176, 190, 197),
+    PopupIcon = Color3.fromRGB(77, 208, 225),
+
+    DialogBackground = Color3.fromRGB(5, 26, 38),
+    DialogBackgroundTransparency = 0,
+    DialogTitle = Color3.fromRGB(236, 239, 241),
+    DialogContent = Color3.fromRGB(176, 190, 197),
+    DialogIcon = Color3.fromRGB(77, 208, 225),
+
+    Toggle = Color3.fromRGB(0, 212, 255),
+    ToggleBar = Color3.fromRGB(176, 190, 197),
+
+    Checkbox = Color3.fromRGB(0, 212, 255),
+    CheckboxIcon = Color3.fromRGB(3, 21, 26),
+    CheckboxBorder = Color3.fromRGB(77, 208, 225),
+    CheckboxBorderTransparency = 0.55,
+
+    SliderIcon = Color3.fromRGB(77, 208, 225),
+    Slider = Color3.fromRGB(0, 212, 255),
+    SliderThumb = Color3.fromRGB(236, 250, 255),
+    SliderIconFrom = Color3.fromRGB(77, 208, 225),
+    SliderIconTo = Color3.fromRGB(77, 208, 225),
+
+    Tooltip = Color3.fromRGB(8, 45, 58),
+    TooltipText = Color3.fromRGB(236, 239, 241),
+    TooltipSecondary = Color3.fromRGB(0, 212, 255),
+    TooltipSecondaryText = Color3.fromRGB(3, 21, 26),
+
+    TabSectionIcon = Color3.fromRGB(77, 208, 225),
+    SectionIcon = Color3.fromRGB(77, 208, 225),
+
+    SectionExpandIcon = Color3.fromRGB(236, 239, 241),
+    SectionExpandIconTransparency = 0.25,
+
+    SectionBox = Color3.fromRGB(255, 255, 255),
+    SectionBoxTransparency = 0.96,
+    SectionBoxBorder = Color3.fromRGB(77, 208, 225),
+    SectionBoxBorderTransparency = 0.8,
+    SectionBoxBackground = Color3.fromRGB(8, 45, 58),
+    SectionBoxBackgroundTransparency = 0.85,
+
+    SearchBarBorder = Color3.fromRGB(77, 208, 225),
+    SearchBarBorderTransparency = 0.8,
+
+    Notification = Color3.fromRGB(5, 26, 38),
+    NotificationTitle = Color3.fromRGB(236, 239, 241),
+    NotificationTitleTransparency = 0,
+    NotificationContent = Color3.fromRGB(176, 190, 197),
+    NotificationContentTransparency = 0.15,
+    NotificationDuration = Color3.fromRGB(0, 212, 255),
+    NotificationDurationTransparency = 0.1,
+    NotificationBorder = Color3.fromRGB(77, 208, 225),
+    NotificationBorderTransparency = 0.8,
+
+    DropdownTabBorder = Color3.fromRGB(77, 208, 225),
+
+    LabelBackground = Color3.fromRGB(0, 212, 255),
+    LabelBackgroundTransparency = 0.92,
+})
+end
