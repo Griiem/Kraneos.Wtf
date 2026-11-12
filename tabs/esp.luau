@@ -12,57 +12,46 @@ return function(Window, WindUI)
 
 local Esp = {}
 
---=====================================================================
--- CONFIG (ajuste aqui conforme o seu jogo)
---=====================================================================
-
--- Nomes (em minúsculo ou não, tanto faz) dos objetos do mapa.
--- O script procura Models/Parts no Workspace com esses nomes.
 Esp.Names = {
     Generator = { "Generator" },
     Hook      = { "Hook" },
     ExitGate  = { "ExitGate", "Exit Gate" },
 }
 
--- Ordem e rótulos que aparecem na UI
 local CATEGORIES = {
-    { Key = "Killer",    Label = "Killer",     Fill = Color3.fromRGB(255, 60, 60)   },
-    { Key = "Survivor",  Label = "Survivors",  Fill = Color3.fromRGB(80, 255, 120)  },
-    { Key = "Generator", Label = "Generators", Fill = Color3.fromRGB(255, 220, 80)  },
-    { Key = "Hook",      Label = "Hooks",      Fill = Color3.fromRGB(255, 140, 40)  },
-    { Key = "ExitGate",  Label = "Exit Gates", Fill = Color3.fromRGB(80, 200, 255)  },
+    { Key = "Killer",    Label = "Killer",     Color = Color3.fromRGB(255, 60, 60)  },
+    { Key = "Survivor",  Label = "Survivors",  Color = Color3.fromRGB(80, 255, 120) },
+    { Key = "Generator", Label = "Generators", Color = Color3.fromRGB(255, 220, 80) },
+    { Key = "Hook",      Label = "Hooks",      Color = Color3.fromRGB(255, 140, 40) },
+    { Key = "ExitGate",  Label = "Exit Gates", Color = Color3.fromRGB(80, 200, 255) },
 }
 
 local SKELETONS = {
-    { Key = "Killer",   Label = "Killer Skeleton",    Color = Color3.fromRGB(255, 60, 60)  },
-    { Key = "Survivor", Label = "Survivor Skeleton",  Color = Color3.fromRGB(80, 255, 120) },
+    { Key = "Killer",   Label = "Killer Skeleton",   Color = Color3.fromRGB(255, 60, 60)  },
+    { Key = "Survivor", Label = "Survivor Skeleton", Color = Color3.fromRGB(80, 255, 120) },
 }
-
---=====================================================================
--- ESTADO
---=====================================================================
 
 Esp.Alive = true
 Esp.Connections = {}
-Esp.Entries = {}     -- [Instance] = { Highlight = Highlight, Category = string }
-Esp.Skeletons = {}   -- [Character] = { Category = string, Lines = {Drawing} }
-Esp.Tracked = { Generator = {}, Hook = {}, ExitGate = {} } -- [Category][Instance] = true
+Esp.Entries = {}
+Esp.Skeletons = {}
+Esp.Tracked = { Generator = {}, Hook = {}, ExitGate = {} }
 
 Esp.Folder = Instance.new("Folder")
 Esp.Folder.Name = "Esp"
 Esp.Folder.Parent = Ws
 
 Esp.Style = {
-    FillTransparency = 0.5,
-    OutlineTransparency = 0.8,
+    Auto = true,
+    OutlineTransparency = 0.3,
 }
 
 Esp.Settings = {}
 for _, c in CATEGORIES do
     Esp.Settings[c.Key] = {
         Enabled = false,
-        FillColor = c.Fill,
-        OutlineColor = Color3.fromRGB(0, 0, 0),
+        Color = c.Color,
+        FillTransparency = 0.5,
     }
 end
 
@@ -79,9 +68,26 @@ local function connect(signal, fn)
     return c
 end
 
---=====================================================================
--- DETECÇÃO DE OBJETOS ESTÁTICOS (geradores, ganchos, exit gate)
---=====================================================================
+local function luminance(c)
+    return 0.299 * c.R + 0.587 * c.G + 0.114 * c.B
+end
+
+local function outlineFor(c)
+    if not Esp.Style.Auto then
+        return Color3.new(0, 0, 0)
+    end
+    if luminance(c) > 0.55 then
+        return c:Lerp(Color3.new(0, 0, 0), 0.8)
+    end
+    return c:Lerp(Color3.new(1, 1, 1), 0.75)
+end
+
+local function fillTransparencyFor(base, c)
+    if not Esp.Style.Auto then
+        return base
+    end
+    return math.clamp(base + math.max(0, luminance(c) - 0.55) * 0.9, 0, 0.95)
+end
 
 local NameToCategory = {}
 for cat, names in Esp.Names do
@@ -121,17 +127,13 @@ task.spawn(function()
     end
 end)
 
---=====================================================================
--- HIGHLIGHTS
---=====================================================================
-
 function Esp:UpdateStyle()
     for _, entry in Esp.Entries do
         local s = Esp.Settings[entry.Category]
         local h = entry.Highlight
-        h.FillColor = s.FillColor
-        h.OutlineColor = s.OutlineColor
-        h.FillTransparency = Esp.Style.FillTransparency
+        h.FillColor = s.Color
+        h.OutlineColor = outlineFor(s.Color)
+        h.FillTransparency = fillTransparencyFor(s.FillTransparency, s.Color)
         h.OutlineTransparency = Esp.Style.OutlineTransparency
     end
 end
@@ -152,10 +154,14 @@ local function playerCategory(player)
     return nil
 end
 
+local function removeSkeleton(sk)
+    for _, line in sk.Lines do line:Remove() end
+    if sk.Circle then sk.Circle:Remove() end
+end
+
 function Esp:Sync()
     if not Esp.Alive then return end
 
-    -- 1) o que deveria estar com ESP agora
     local desired = {}
 
     for _, player in Players:GetPlayers() do
@@ -177,7 +183,6 @@ function Esp:Sync()
         end
     end
 
-    -- 2) remove o que sobrou / mudou de categoria
     for inst, entry in Esp.Entries do
         if desired[inst] ~= entry.Category then
             entry.Highlight:Destroy()
@@ -185,7 +190,6 @@ function Esp:Sync()
         end
     end
 
-    -- 3) cria o que falta
     for inst, cat in desired do
         if not Esp.Entries[inst] then
             createHighlight(inst, cat)
@@ -194,11 +198,10 @@ function Esp:Sync()
 
     Esp:UpdateStyle()
 
-    -- 4) skeletons
     for char, sk in Esp.Skeletons do
         local cat = desired[char]
         if not cat or cat ~= sk.Category or not Esp.Skeleton[cat] or not Esp.Skeleton[cat].Enabled then
-            for _, line in sk.Lines do line:Remove() end
+            removeSkeleton(sk)
             Esp.Skeletons[char] = nil
         end
     end
@@ -213,12 +216,8 @@ function Esp:Sync()
     end
 end
 
---=====================================================================
--- SKELETON (usa a Drawing API do executor)
---=====================================================================
-
 local R15_PAIRS = {
-    { "Head", "UpperTorso" },
+    { "Head", "UpperTorso", true },
     { "UpperTorso", "LowerTorso" },
     { "UpperTorso", "LeftUpperArm" }, { "LeftUpperArm", "LeftLowerArm" }, { "LeftLowerArm", "LeftHand" },
     { "UpperTorso", "RightUpperArm" }, { "RightUpperArm", "RightLowerArm" }, { "RightLowerArm", "RightHand" },
@@ -227,7 +226,7 @@ local R15_PAIRS = {
 }
 
 local R6_PAIRS = {
-    { "Head", "Torso" },
+    { "Head", "Torso", true },
     { "Torso", "Left Arm" }, { "Torso", "Right Arm" },
     { "Torso", "Left Leg" }, { "Torso", "Right Leg" },
 }
@@ -256,7 +255,11 @@ if HasDrawing then
                 local b = char:FindFirstChild(pair[2])
 
                 if a and b and a:IsA("BasePart") and b:IsA("BasePart") then
-                    local pa, onA = cam:WorldToViewportPoint(a.Position)
+                    local originA = a.Position
+                    if pair[3] then
+                        originA = originA - a.CFrame.UpVector * (a.Size.Y / 2)
+                    end
+                    local pa, onA = cam:WorldToViewportPoint(originA)
                     local pb, onB = cam:WorldToViewportPoint(b.Position)
                     if onA and onB and pa.Z > 0 and pb.Z > 0 then
                         line.From = Vector2.new(pa.X, pa.Y)
@@ -271,18 +274,37 @@ if HasDrawing then
                 end
             end
 
-            -- esconde linhas sobrando (troca de rig)
             for i = #pairsList + 1, #sk.Lines do
                 sk.Lines[i].Visible = false
+            end
+
+            if not sk.Circle then
+                local circle = Drawing.new("Circle")
+                circle.Thickness = 1.5
+                circle.NumSides = 24
+                circle.Filled = false
+                circle.Transparency = 1
+                sk.Circle = circle
+            end
+
+            local head = char:FindFirstChild("Head")
+            if head and head:IsA("BasePart") then
+                local center, onScreen = cam:WorldToViewportPoint(head.Position)
+                if onScreen and center.Z > 0 then
+                    local top = cam:WorldToViewportPoint(head.Position + cam.CFrame.UpVector * (head.Size.Y / 2))
+                    sk.Circle.Position = Vector2.new(center.X, center.Y)
+                    sk.Circle.Radius = math.max(2, (Vector2.new(top.X, top.Y) - Vector2.new(center.X, center.Y)).Magnitude)
+                    sk.Circle.Color = color
+                    sk.Circle.Visible = true
+                else
+                    sk.Circle.Visible = false
+                end
+            else
+                sk.Circle.Visible = false
             end
         end
     end)
 end
-
---=====================================================================
--- LOOP DE SINCRONIZAÇÃO (garante que tudo se ajusta a respawn, troca
--- de time, rounds novos, etc.)
---=====================================================================
 
 task.spawn(function()
     while Esp.Alive do
@@ -290,10 +312,6 @@ task.spawn(function()
         task.wait(0.25)
     end
 end)
-
---=====================================================================
--- CLEANUP
---=====================================================================
 
 function Esp:Cleanup()
     Esp.Alive = false
@@ -304,7 +322,7 @@ function Esp:Cleanup()
     table.clear(Esp.Connections)
 
     for _, sk in Esp.Skeletons do
-        for _, line in sk.Lines do line:Remove() end
+        removeSkeleton(sk)
     end
     table.clear(Esp.Skeletons)
 
@@ -321,10 +339,6 @@ function Esp:Cleanup()
     end
 end
 
---=====================================================================
--- UI
---=====================================================================
-
 local Tab = Window:Tab({
     Title = "ESP",
     Icon = "eye",
@@ -335,7 +349,6 @@ local HStack = Tab:HStack({ AutoSpace = true })
 local LeftVStack = HStack:VStack()
 local RightVStack = HStack:VStack()
 
---< Esquerda: ativar / desativar
 for _, c in CATEGORIES do
     LeftVStack:Toggle({
         Title = "Esp " .. c.Label,
@@ -355,7 +368,7 @@ for _, s in SKELETONS do
         Value = false,
         Callback = function(state)
             if state and not HasDrawing then
-                warn("[ESP] Drawing API indisponível neste executor, skeleton não vai aparecer.")
+                warn("[ESP] Drawing API indisponivel neste executor, skeleton nao vai aparecer.")
             end
             Esp.Skeleton[s.Key].Enabled = state
             Esp:Sync()
@@ -363,46 +376,36 @@ for _, s in SKELETONS do
     })
 end
 
---< Direita: customização
-for _, c in CATEGORIES do
-    RightVStack:Colorpicker({
-        Title = c.Label .. " Fill Color",
-        Default = Esp.Settings[c.Key].FillColor,
-        Callback = function(color)
-            Esp.Settings[c.Key].FillColor = color
-            Esp:UpdateStyle()
-        end,
-    })
-
-    RightVStack:Colorpicker({
-        Title = c.Label .. " Outline Color",
-        Default = Esp.Settings[c.Key].OutlineColor,
-        Callback = function(color)
-            Esp.Settings[c.Key].OutlineColor = color
-            Esp:UpdateStyle()
-        end,
-    })
-end
-
-for _, s in SKELETONS do
-    RightVStack:Colorpicker({
-        Title = s.Label .. " Color",
-        Default = Esp.Skeleton[s.Key].Color,
-        Callback = function(color)
-            Esp.Skeleton[s.Key].Color = color
-        end,
-    })
-end
-
-RightVStack:Slider({
-    Title = "Fill Transparency",
-    Value = { Min = 0, Max = 1, Default = Esp.Style.FillTransparency },
-    Step = 0.1,
-    Callback = function(value)
-        Esp.Style.FillTransparency = value
+LeftVStack:Toggle({
+    Title = "Auto Outline & Transparency",
+    Type = "Checkbox",
+    Value = Esp.Style.Auto,
+    Callback = function(state)
+        Esp.Style.Auto = state
         Esp:UpdateStyle()
     end,
 })
+
+for _, c in CATEGORIES do
+    RightVStack:Colorpicker({
+        Title = c.Label .. " Color",
+        Default = Esp.Settings[c.Key].Color,
+        Callback = function(color)
+            Esp.Settings[c.Key].Color = color
+            Esp:UpdateStyle()
+        end,
+    })
+
+    RightVStack:Slider({
+        Title = c.Label .. " Fill Transparency",
+        Value = { Min = 0, Max = 1, Default = Esp.Settings[c.Key].FillTransparency },
+        Step = 0.1,
+        Callback = function(value)
+            Esp.Settings[c.Key].FillTransparency = value
+            Esp:UpdateStyle()
+        end,
+    })
+end
 
 RightVStack:Slider({
     Title = "Outline Transparency",
@@ -413,6 +416,16 @@ RightVStack:Slider({
         Esp:UpdateStyle()
     end,
 })
+
+for _, s in SKELETONS do
+    RightVStack:Colorpicker({
+        Title = s.Label .. " Color",
+        Default = Esp.Skeleton[s.Key].Color,
+        Callback = function(color)
+            Esp.Skeleton[s.Key].Color = color
+        end,
+    })
+end
 
 Window:OnDestroy(function()
     Esp:Cleanup()
