@@ -74,12 +74,19 @@ end
 
 local function outlineFor(c)
     if not Esp.Style.Auto then
-        return Color3.new(0, 0, 0)
+        return c
     end
-    if luminance(c) > 0.55 then
-        return c:Lerp(Color3.new(0, 0, 0), 0.8)
+    if luminance(c) > 0.5 then
+        return c:Lerp(Color3.new(0, 0, 0), 0.5)
     end
-    return c:Lerp(Color3.new(1, 1, 1), 0.75)
+    return c:Lerp(Color3.new(1, 1, 1), 0.4)
+end
+
+local function outlineTransparencyFor(base, c)
+    if not Esp.Style.Auto then
+        return base
+    end
+    return math.clamp(base + math.max(0, luminance(c) - 0.5) * 0.9, 0, 0.95)
 end
 
 local function fillTransparencyFor(base, c)
@@ -134,7 +141,7 @@ function Esp:UpdateStyle()
         h.FillColor = s.Color
         h.OutlineColor = outlineFor(s.Color)
         h.FillTransparency = fillTransparencyFor(s.FillTransparency, s.Color)
-        h.OutlineTransparency = Esp.Style.OutlineTransparency
+        h.OutlineTransparency = outlineTransparencyFor(Esp.Style.OutlineTransparency, s.Color)
     end
 end
 
