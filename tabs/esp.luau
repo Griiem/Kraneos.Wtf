@@ -76,10 +76,11 @@ local function outlineFor(c)
     if not Esp.Style.Auto then
         return c
     end
-    if luminance(c) > 0.5 then
-        return c:Lerp(Color3.new(0, 0, 0), 0.5)
+    local h, s, v = c:ToHSV()
+    if luminance(c) > 0.2 then
+        return Color3.fromHSV(h, s, v * 0.55)
     end
-    return c:Lerp(Color3.new(1, 1, 1), 0.4)
+    return Color3.fromHSV(h, s, math.min(1, v * 1.8 + 0.2))
 end
 
 local function outlineTransparencyFor(base, c)
