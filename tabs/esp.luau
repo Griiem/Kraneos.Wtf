@@ -147,8 +147,6 @@ local function hasTrackedAncestor(inst, set)
     return false
 end
 
--- GENERATOR HIGHLIGHT CLEANUP
-
 local function removeGeneratorHighlights(generator)
     for _, d in generator:GetDescendants() do
         if d:IsA("Highlight") then
@@ -176,8 +174,6 @@ local function removeLateGeneratorHighlight(inst)
     end
 end
 
--- NORMAL OBJECT DETECTION
-
 local function consider(inst)
     if not (inst:IsA("Model") or inst:IsA("BasePart")) then
         return
@@ -197,8 +193,6 @@ local function consider(inst)
 
     set[inst] = true
 end
-
--- PUMPKIN DETECTION
 
 local function hasPumpkinObjectAncestor(inst)
     local p = inst.Parent
@@ -229,8 +223,6 @@ local function considerPumpkin(inst)
 
     Esp.Tracked.Pumpkin[inst] = true
 end
-
--- WORKSPACE MONITORING
 
 connect(Ws.DescendantAdded, function(inst)
     consider(inst)
@@ -265,8 +257,6 @@ task.spawn(function()
     end
 end)
 
--- STYLE
-
 function Esp:UpdateStyle()
     for _, entry in Esp.Entries do
         local s = Esp.Settings[entry.Category]
@@ -287,8 +277,6 @@ function Esp:UpdateStyle()
     end
 end
 
--- HIGHLIGHT CREATION
-
 local function createHighlight(inst, cat)
     if cat == "Generator" then
         removeGeneratorHighlights(inst)
@@ -308,8 +296,6 @@ local function createHighlight(inst, cat)
     }
 end
 
--- PLAYER DETECTION
-
 local function playerCategory(player)
     if player.Team == Killer then
         return "Killer"
@@ -322,8 +308,6 @@ local function playerCategory(player)
     return nil
 end
 
--- SKELETON CLEANUP
-
 local function removeSkeleton(sk)
     for _, line in sk.Lines do
         line:Remove()
@@ -333,8 +317,6 @@ local function removeSkeleton(sk)
         sk.Circle:Remove()
     end
 end
-
--- SYNC
 
 function Esp:Sync()
     if not Esp.Alive then
@@ -415,8 +397,6 @@ function Esp:Sync()
     end
 end
 
--- SKELETON CONFIGURATION
-
 local R15_PAIRS = {
     { "Head", "UpperTorso", true },
     { "UpperTorso", "LowerTorso" },
@@ -441,8 +421,6 @@ local R6_PAIRS = {
     { "Torso", "Left Leg" },
     { "Torso", "Right Leg" },
 }
-
--- SKELETON RENDERING
 
 if HasDrawing then
     connect(RunService.RenderStepped, function()
@@ -545,16 +523,12 @@ if HasDrawing then
     end)
 end
 
--- MAIN LOOP
-
 task.spawn(function()
     while Esp.Alive do
         Esp:Sync()
         task.wait(0.25)
     end
 end)
-
--- CLEANUP
 
 function Esp:Cleanup()
     Esp.Alive = false
@@ -588,8 +562,6 @@ function Esp:Cleanup()
         Esp.Folder = nil
     end
 end
-
--- UI
 
 local Tab = Window:Tab({
     Title = "ESP",
