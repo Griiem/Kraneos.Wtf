@@ -71,7 +71,7 @@ local PlayerTab = Window:Tab({
 
 local JumpAimbot = PlayerTab:Toggle({
     Title = "Jump Aimbot",
-    Type = "checkbox",
+    Type = "Checkbox",
 
     Value = false,
     Callback = function(state)
