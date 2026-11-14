@@ -1,125 +1,306 @@
 local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Survivors = Teams:WaitForChild("Survivors")
 local Killer = Teams:WaitForChild("Killer")
 
-local Config = {
-    Enabled = true,
-    MaxDistance = 80,
-    ProximityBoost = { Survivor = 0.25, Killer = 0.2 },
-    HoldBoost = 0.2,
-    HoldTime = 2,
-    TotalCap = 0.4,
-    Smoothness = 4,
-    ForwardDot = 0.65,
-}
+return function(Window, WindUI)
+    local Player = {}
 
-local State = {
-    Character = nil,
-    Natural = nil,
-    LastApplied = nil,
-    Hold = 0,
-}
+    Player.Alive = true
+    Player.Connections = {}
 
-local function getAlive(player)
-    local character = player.Character
-    if not character then return nil end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not humanoid or not root or humanoid.Health <= 0 then return nil end
-    return character, humanoid, root
-end
+    Player.CustomEnabled = false
+    Player.LegitEnabled = false
+    Player.SpeedForce = 16
 
-local function getRole()
-    if LocalPlayer.Team == Survivors then return "Survivor", Killer end
-    if LocalPlayer.Team == Killer then return "Killer", Survivors end
-    return nil, nil
-end
+    Player.Character = nil
+    Player.Humanoid = nil
+    Player.Root = nil
 
-local function nearestDistance(root, team)
-    local nearest = math.huge
-    for _, other in Players:GetPlayers() do
-        if other ~= LocalPlayer and other.Team == team then
-            local _, _, otherRoot = getAlive(other)
-            if otherRoot then
-                local distance = (root.Position - otherRoot.Position).Magnitude
-                if distance < nearest then
-                    nearest = distance
+    Player.NormalSpeed = nil
+    Player.NaturalSpeed = nil
+    Player.LastApplied = nil
+
+    Player.CurrentBonus = 0
+    Player.Hold = 0
+
+    Player.Config = {
+        Survivor = {
+            MaxDistance = 100,
+            MaxBoost = 0.35,
+            OcclusionBoost = 0.12,
+            OcclusionDistance = 90,
+        },
+        Killer = {
+            MaxDistance = 100,
+            MaxBoost = 0.25,
+        },
+        Hold = {
+            MaxBoost = 0.2,
+            Time = 2,
+            ForwardDot = 0.65,
+            Decay = 3,
+        },
+        TotalCap = 0.4,
+        Smoothness = 3,
+        CrouchThreshold = 0.85,
+    }
+
+    local function connect(signal, callback)
+        local connection = signal:Connect(callback)
+        table.insert(Player.Connections, connection)
+        return connection
+    end
+
+    local function getCharacter(player)
+        local character = player.Character
+        if not character then return nil, nil, nil end
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local root = character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not root or humanoid.Health <= 0 then
+            return nil, nil, nil
+        end
+        return character, humanoid, root
+    end
+
+    local function getRole()
+        if LocalPlayer.Team == Survivors then return "Survivor" end
+        if LocalPlayer.Team == Killer then return "Killer" end
+        return nil
+    end
+
+    local function resetCharacter()
+        local character, humanoid, root = getCharacter(LocalPlayer)
+        Player.Character = character
+        Player.Humanoid = humanoid
+        Player.Root = root
+        Player.NormalSpeed = humanoid and humanoid.WalkSpeed or nil
+        Player.NaturalSpeed = Player.NormalSpeed
+        Player.LastApplied = nil
+        Player.CurrentBonus = 0
+        Player.Hold = 0
+    end
+
+    local function restoreSpeed()
+        local humanoid = Player.Humanoid
+        if humanoid and humanoid.Parent and Player.LastApplied then
+            humanoid.WalkSpeed = Player.NaturalSpeed or Player.NormalSpeed
+        end
+        Player.LastApplied = nil
+        Player.CurrentBonus = 0
+        Player.Hold = 0
+    end
+
+    local function getNearestOf(root, team)
+        local nearest = nil
+        local nearestDistance = math.huge
+        for _, target in Players:GetPlayers() do
+            if target ~= LocalPlayer and target.Team == team then
+                local _, humanoid, targetRoot = getCharacter(target)
+                if humanoid and targetRoot then
+                    local distance = (root.Position - targetRoot.Position).Magnitude
+                    if distance < nearestDistance then
+                        nearestDistance = distance
+                        nearest = targetRoot
+                    end
                 end
             end
         end
-    end
-    return nearest
-end
-
-local function restore(humanoid)
-    if humanoid and State.LastApplied and State.Natural then
-        humanoid.WalkSpeed = State.Natural
-    end
-    State.LastApplied = nil
-    State.Hold = 0
-end
-
-RunService.Heartbeat:Connect(function(dt)
-    local character, humanoid, root = getAlive(LocalPlayer)
-    if not character then
-        State.Character = nil
-        State.Natural = nil
-        State.LastApplied = nil
-        State.Hold = 0
-        return
+        return nearest, nearestDistance
     end
 
-    if character ~= State.Character then
-        State.Character = character
-        State.Natural = humanoid.WalkSpeed
-        State.LastApplied = nil
-        State.Hold = 0
-        return
+    local function hasLineOfSight(origin, target, ignoreCharacter)
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = { ignoreCharacter, origin.Parent }
+        local direction = target.Position - origin.Position
+        local result = Workspace:Raycast(origin.Position, direction, params)
+        return result == nil
     end
 
-    if not Config.Enabled then
-        restore(humanoid)
-        return
-    end
-
-    local current = humanoid.WalkSpeed
-    if State.LastApplied then
-        if math.abs(current - State.LastApplied) > 0.05 then
-            State.Natural = current
-            State.LastApplied = nil
+    local function getSurvivorBoost(root)
+        local killerRoot, distance = getNearestOf(root, Killer)
+        if not killerRoot then return 0 end
+        local config = Player.Config.Survivor
+        if distance > config.MaxDistance then return 0 end
+        local proximity = 1 - math.clamp(distance / config.MaxDistance, 0, 1)
+        local boost = proximity * config.MaxBoost
+        if distance <= config.OcclusionDistance
+            and not hasLineOfSight(killerRoot, root, Player.Character) then
+            boost += config.OcclusionBoost * proximity
         end
-    else
-        State.Natural = current
+        return boost
     end
 
-    local direction = humanoid.MoveDirection
-    local forward = direction.Magnitude > 0.1 and direction:Dot(root.CFrame.LookVector) > Config.ForwardDot
-    if forward then
-        State.Hold = math.min(State.Hold + dt, Config.HoldTime)
-    else
-        State.Hold = math.max(State.Hold - dt * 3, 0)
+    local function getKillerBoost(root)
+        local survivorRoot, distance = getNearestOf(root, Survivors)
+        if not survivorRoot then return 0 end
+        local config = Player.Config.Killer
+        if distance > config.MaxDistance then return 0 end
+        local proximity = 1 - math.clamp(distance / config.MaxDistance, 0, 1)
+        return proximity * config.MaxBoost
     end
 
-    local bonus = Config.HoldBoost * (State.Hold / Config.HoldTime)
-
-    local role, otherTeam = getRole()
-    if role then
-        local distance = nearestDistance(root, otherTeam)
-        if distance < Config.MaxDistance then
-            bonus += (1 - distance / Config.MaxDistance) * Config.ProximityBoost[role]
+    local function getHoldBoost(root, dt)
+        local config = Player.Config.Hold
+        local direction = Player.Humanoid.MoveDirection
+        local forward = direction.Magnitude > 0.1
+            and direction:Dot(root.CFrame.LookVector) > config.ForwardDot
+        if forward then
+            Player.Hold = math.min(Player.Hold + dt, config.Time)
+        else
+            Player.Hold = math.max(Player.Hold - dt * config.Decay, 0)
         end
+        return config.MaxBoost * (Player.Hold / config.Time)
     end
 
-    bonus = math.min(bonus, Config.TotalCap)
+    local function updateSpeed(dt)
+        if not Player.Alive then return end
+        local character, humanoid, root = getCharacter(LocalPlayer)
+        if not humanoid then
+            if Player.Humanoid then restoreSpeed() end
+            Player.Character = nil
+            Player.Humanoid = nil
+            Player.Root = nil
+            Player.NormalSpeed = nil
+            Player.NaturalSpeed = nil
+            return
+        end
 
-    local target = State.Natural * (1 + bonus)
-    local alpha = 1 - math.exp(-Config.Smoothness * dt)
-    local newSpeed = current + (target - current) * alpha
+        if character ~= Player.Character then
+            resetCharacter()
+            return
+        end
 
-    humanoid.WalkSpeed = newSpeed
-    State.LastApplied = newSpeed
-end)
+        if not (Player.CustomEnabled or Player.LegitEnabled) then
+            restoreSpeed()
+            return
+        end
+
+        if character:GetAttribute("Crouching") then
+            Player.LastApplied = nil
+            Player.CurrentBonus = 0
+            Player.Hold = 0
+            return
+        end
+
+        local currentSpeed = humanoid.WalkSpeed
+        if Player.LastApplied then
+            if math.abs(currentSpeed - Player.LastApplied) > 0.05 then
+                Player.NaturalSpeed = currentSpeed
+                Player.LastApplied = nil
+            end
+        else
+            Player.NaturalSpeed = currentSpeed
+        end
+
+        local normalSpeed = Player.NormalSpeed or currentSpeed
+        local naturalSpeed = Player.NaturalSpeed or currentSpeed
+
+        if naturalSpeed < normalSpeed * Player.Config.CrouchThreshold then
+            Player.LastApplied = nil
+            Player.CurrentBonus = 0
+            Player.Hold = 0
+            return
+        end
+
+        local targetSpeed
+        if Player.LegitEnabled then
+            local bonus = getHoldBoost(root, dt)
+            local role = getRole()
+            if role == "Survivor" then
+                bonus += getSurvivorBoost(root)
+            elseif role == "Killer" then
+                bonus += getKillerBoost(root)
+            end
+            bonus = math.min(bonus, Player.Config.TotalCap)
+            Player.CurrentBonus = bonus
+            targetSpeed = naturalSpeed * (1 + bonus)
+        else
+            Player.CurrentBonus = 0
+            targetSpeed = Player.SpeedForce
+        end
+
+        local alpha = 1 - math.exp(-Player.Config.Smoothness * dt)
+        local newSpeed = currentSpeed + (targetSpeed - currentSpeed) * alpha
+        humanoid.WalkSpeed = newSpeed
+        Player.LastApplied = newSpeed
+    end
+
+    function Player:CleanUp()
+        Player.Alive = false
+        for _, connection in self.Connections do
+            if connection.Connected then
+                connection:Disconnect()
+            end
+        end
+        table.clear(self.Connections)
+        restoreSpeed()
+        self.Character = nil
+        self.Humanoid = nil
+        self.Root = nil
+        self.NormalSpeed = nil
+        self.NaturalSpeed = nil
+        self.LastApplied = nil
+    end
+
+    local Tab = Window:Tab({ Title = "Player", Icon = "user-cog" })
+    local HStack = Tab:HStack({ AutoSpace = true })
+    local LeftVStack = HStack:VStack()
+    local RightVStack = HStack:VStack()
+
+    LeftVStack:Toggle({
+        Title = "Custom Speed",
+        Type = "Checkbox",
+        Value = false,
+        Callback = function(state)
+            Player.CustomEnabled = state
+            if not state and not Player.LegitEnabled then restoreSpeed() end
+        end,
+    })
+
+    LeftVStack:Toggle({
+        Title = "Legit Speed",
+        Type = "Checkbox",
+        Value = false,
+        Callback = function(state)
+            Player.LegitEnabled = state
+            if not state then
+                Player.CurrentBonus = 0
+                Player.Hold = 0
+                if not Player.CustomEnabled then restoreSpeed() end
+            end
+        end,
+    })
+
+    RightVStack:Slider({
+        Title = "Speed Force",
+        Value = { Min = 0.1, Max = 100, Default = 16 },
+        Step = 0.1,
+        Callback = function(value)
+            Player.SpeedForce = value
+        end,
+    })
+
+    resetCharacter()
+
+    connect(LocalPlayer.CharacterAdded, function()
+        task.wait(0.2)
+        if Player.Alive then resetCharacter() end
+    end)
+
+    connect(LocalPlayer:GetPropertyChangedSignal("Team"), function()
+        Player.CurrentBonus = 0
+        Player.Hold = 0
+    end)
+
+    connect(RunService.Heartbeat, updateSpeed)
+
+    Window:OnDestroy(function()
+        Player:CleanUp()
+    end)
+end
