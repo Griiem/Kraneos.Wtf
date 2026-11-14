@@ -1,5 +1,34 @@
+local HttpService = game:GetService("HttpService")
+
 local _version = "1.6.66"
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))() 
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/download/" .. _version .. "/main.lua"))()
+
+local OWNER = "Griiem"
+local REPO = "Kraneos.Wtf"
+local BRANCH = "main"
+
+local RAW_URL = ("https://raw.githubusercontent.com/%s/%s/%s/"):format(OWNER, REPO, BRANCH)
+local API_URL = ("https://api.github.com/repos/%s/%s/contents/tabs/"):format(OWNER, REPO)
+
+local games = loadstring(game:HttpGet(RAW_URL .. "games.luau"))()
+
+local gameFolder
+for name, id in pairs(games) do
+    if game.PlaceId == id or game.GameId == id then
+        gameFolder = name
+        break
+    end
+end
+
+if not gameFolder then
+    WindUI:Notify({
+        Title = "Kraneos",
+        Content = "Esse jogo não é suportado.",
+        Icon = "x",
+        Duration = 5,
+    })
+    return
+end
 
 local Window = WindUI:CreateWindow({
     Title = "",
@@ -45,11 +74,10 @@ Window:Tag({
     Radius = 13,
 })
 
-
-local BASE_URL = "https://raw.githubusercontent.com/Griiem/Kraneos.Wtf/main/tabs/"
+local TABS_URL = RAW_URL .. "tabs/" .. gameFolder .. "/"
 
 local function loadTab(name)
-    local url = BASE_URL .. name .. ".luau"
+    local url = TABS_URL .. name .. ".luau"
 
     local success, err = pcall(function()
         local source = game:HttpGet(url)
@@ -76,7 +104,31 @@ local function loadTab(name)
     return true
 end
 
-loadTab("esp")
-loadTab("player")
+local listed, files = pcall(function()
+    return HttpService:JSONDecode(game:HttpGet(API_URL .. gameFolder .. "?ref=" .. BRANCH))
+end)
+
+if not listed or type(files) ~= "table" then
+    WindUI:Notify({
+        Title = "Kraneos",
+        Content = "Não consegui listar as tabs de " .. gameFolder .. ".",
+        Icon = "x",
+        Duration = 5,
+    })
+    return
+end
+
+table.sort(files, function(a, b)
+    return a.name < b.name
+end)
+
+for _, file in ipairs(files) do
+    if file.type == "file" then
+        local tabName = file.name:match("^(.+)%.luau$")
+        if tabName then
+            loadTab(tabName)
+        end
+    end
+end
 
 print("[Wtf.Warning] Loaded...")
