@@ -78,6 +78,8 @@ local JumpAimbot = PlayerTab:Toggle({
     end
 })
 
+Window:SetToggleKey(Enum.KeyCode.M)
+
 Window:OnDestroy(function()
     JumpAim.Connection = nil
     JumpAim.Enabled = false
