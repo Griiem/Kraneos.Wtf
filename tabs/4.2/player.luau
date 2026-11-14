@@ -78,4 +78,9 @@ local JumpAimbot = PlayerTab:Toggle({
     end
 })
 
+Window:OnDestroy(function()
+    JumpAim.Connection = nil
+    JumpAim.Enabled = false
+end)
+
 end
