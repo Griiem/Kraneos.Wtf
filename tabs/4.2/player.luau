@@ -70,13 +70,12 @@ local PlayerTab = Window:Tab({
 })
 
 local JumpAimbot = PlayerTab:Toggle({
-    Title = "Jump Aimbot",
+    Title = "Accept Terms",
     Type = "Checkbox",
-
     Value = false,
     Callback = function(state)
         setJumpAim(state)
-    end,
+    end
 })
 
 end
